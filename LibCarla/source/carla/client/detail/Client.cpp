@@ -145,10 +145,6 @@ namespace detail {
     _pimpl->CallAndWait<void>("load_new_episode", std::move(map_name));
   }
 
-  bool Client::CheckIntermediateEpisode() {
-    return _pimpl->CallAndWait<bool>("check_intermediate_episode");
-  }
-
   void Client::CopyOpenDriveToServer(std::string opendrive, const rpc::OpendriveGenerationParameters & params) {
     // Await response, we need to be sure in this one.
     _pimpl->CallAndWait<void>("copy_opendrive_to_file", std::move(opendrive), params);
@@ -324,8 +320,8 @@ namespace detail {
     return _pimpl->CallAndWait<return_t>("get_group_traffic_lights", traffic_light);
   }
 
-  std::string Client::StartRecorder(std::string name) {
-    return _pimpl->CallAndWait<std::string>("start_recorder", name);
+  std::string Client::StartRecorder(std::string name, bool additional_data) {
+    return _pimpl->CallAndWait<std::string>("start_recorder", name, additional_data);
   }
 
   void Client::StopRecorder() {

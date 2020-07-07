@@ -69,7 +69,7 @@ public:
   FPimpl(uint16_t RPCPort, uint16_t StreamingPort)
     : Server(RPCPort),
       StreamingServer(StreamingPort),
-      BroadcastStream(StreamingServer.MakeMultiStream())
+      BroadcastStream(StreamingServer.MakeStream())
   {
     BindActions();
   }
@@ -81,7 +81,7 @@ public:
 
   carla::streaming::Server StreamingServer;
 
-  carla::streaming::MultiStream BroadcastStream;
+  carla::streaming::Stream BroadcastStream;
 
   UCarlaEpisode *Episode = nullptr;
 
@@ -229,32 +229,11 @@ void FCarlaServer::FPimpl::BindActions()
   BIND_SYNC(load_new_episode) << [this](const std::string &map_name) -> R<void>
   {
     REQUIRE_CARLA_EPISODE();
-    FString MapName = cr::ToFString(map_name);
-    MapName = MapName.IsEmpty() ? Episode->GetMapName() : MapName;
-    auto Maps = UCarlaStatics::GetAllMapNames();
-    Maps.Add("OpenDriveMap");
-    bool bMissingMap = true;
-    for (auto & Map : Maps)
-    {
-      if(Map.Contains(MapName))
-      {
-        bMissingMap = false;
-        break;
-      }
-    }
-    if(bMissingMap)
+    if(!Episode->LoadNewEpisode(cr::ToFString(map_name)))
     {
       RESPOND_ERROR("map not found");
     }
-    UCarlaStatics::GetGameInstance(Episode->GetWorld())->SetMapToLoad(MapName);
-    Episode->LoadNewEpisode(cr::ToFString("EmptyMap"));
     return R<void>::Success();
-  };
-
-  BIND_SYNC(check_intermediate_episode) << [this]() -> R<bool>
-  {
-    REQUIRE_CARLA_EPISODE();
-    return UCarlaStatics::GetGameInstance(Episode->GetWorld())->IsLevelPendingLoad();
   };
 
   BIND_SYNC(copy_opendrive_to_file) << [this](const std::string &opendrive, cr::OpendriveGenerationParameters Params) -> R<void>
@@ -945,10 +924,10 @@ void FCarlaServer::FPimpl::BindActions()
 
   // ~~ Logging and playback ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  BIND_SYNC(start_recorder) << [this](std::string name) -> R<std::string>
+  BIND_SYNC(start_recorder) << [this](std::string name, bool AdditionalData) -> R<std::string>
   {
     REQUIRE_CARLA_EPISODE();
-    return R<std::string>(Episode->StartRecorder(name));
+    return R<std::string>(Episode->StartRecorder(name, AdditionalData));
   };
 
   BIND_SYNC(stop_recorder) << [this]() -> R<void>
